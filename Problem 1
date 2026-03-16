@@ -1,0 +1,86 @@
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class UsernameChecker {
+
+    // Stores username -> userId (taken usernames)
+    private final Map<String, Integer> usernameMap;
+
+    // Tracks attempted username frequency
+    private final Map<String, Integer> attemptFrequency;
+
+    // For thread-safe concurrent access
+    public UsernameChecker() {
+        usernameMap = new ConcurrentHashMap<>();
+        attemptFrequency = new ConcurrentHashMap<>();
+    }
+
+    // Add a username (registration)
+    public void registerUsername(String username, int userId) {
+        usernameMap.put(username.toLowerCase(), userId);
+    }
+
+    // Check availability in O(1)
+    public boolean checkAvailability(String username) {
+        String key = username.toLowerCase();
+        // Update attempt frequency
+        attemptFrequency.put(key, attemptFrequency.getOrDefault(key, 0) + 1);
+        return !usernameMap.containsKey(key);
+    }
+
+    // Suggest similar alternatives if taken
+    public List<String> suggestAlternatives(String username) {
+        List<String> suggestions = new ArrayList<>();
+        String base = username.replaceAll("[^a-zA-Z0-9]", ""); // clean base
+        int suffix = 1;
+
+        // Try simple numeric append
+        while (suggestions.size() < 3) {
+            String candidate = base + suffix;
+            if (!usernameMap.containsKey(candidate.toLowerCase())) {
+                suggestions.add(candidate);
+            }
+            suffix++;
+        }
+
+        // Add variant with dot
+        String dotVariant = base.replace("_", ".").toLowerCase();
+        if (!usernameMap.containsKey(dotVariant)) {
+            suggestions.add(dotVariant);
+        }
+
+        return suggestions;
+    }
+
+    // Get the most attempted username
+    public String getMostAttempted() {
+        return attemptFrequency.entrySet()
+                .stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
+
+    // Sample main for testing
+    public static void main(String[] args) {
+        UsernameChecker checker = new UsernameChecker();
+
+        // Simulate existing users
+        checker.registerUsername("john_doe", 101);
+        checker.registerUsername("admin", 1);
+        checker.registerUsername("jane_smith", 102);
+
+        System.out.println("Availability john_doe: " + checker.checkAvailability("john_doe")); // false
+        System.out.println("Availability jane_smith: " + checker.checkAvailability("jane_smith")); // false
+        System.out.println("Availability new_user: " + checker.checkAvailability("new_user")); // true
+
+        System.out.println("Suggestions for john_doe: " + checker.suggestAlternatives("john_doe"));
+
+        // Simulate attempts
+        checker.checkAvailability("admin");
+        checker.checkAvailability("admin");
+        checker.checkAvailability("admin");
+
+        System.out.println("Most attempted username: " + checker.getMostAttempted()); // admin
+    }
+}
