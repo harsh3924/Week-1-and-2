@@ -1,0 +1,140 @@
+import java.util.*;
+
+class VideoData {
+    String videoId;
+    String content;
+
+    public VideoData(String videoId, String content) {
+        this.videoId = videoId;
+        this.content = content;
+    }
+}
+
+class MultiLevelCache {
+
+    // L1 Cache (Memory) – 10,000 items with LRU
+    private final int L1_CAPACITY = 10000;
+
+    private LinkedHashMap<String, VideoData> L1Cache =
+            new LinkedHashMap<String, VideoData>(L1_CAPACITY, 0.75f, true) {
+                protected boolean removeEldestEntry(Map.Entry<String, VideoData> eldest) {
+                    return size() > L1_CAPACITY;
+                }
+            };
+
+    // L2 Cache (SSD simulated)
+    private HashMap<String, VideoData> L2Cache = new HashMap<>();
+
+    // L3 Cache (Database simulated)
+    private HashMap<String, VideoData> database = new HashMap<>();
+
+    // Access count tracker
+    private HashMap<String, Integer> accessCount = new HashMap<>();
+
+    // Hit counters
+    int L1Hits = 0;
+    int L2Hits = 0;
+    int DBHits = 0;
+
+    // Threshold to promote L2 → L1
+    private final int PROMOTION_THRESHOLD = 3;
+
+    // Get video
+    public VideoData getVideo(String videoId) {
+
+        // -------- L1 CACHE --------
+        if (L1Cache.containsKey(videoId)) {
+            L1Hits++;
+            System.out.println("L1 Cache HIT (0.5ms)");
+            incrementAccess(videoId);
+            return L1Cache.get(videoId);
+        }
+
+        System.out.println("L1 Cache MISS");
+
+        // -------- L2 CACHE --------
+        if (L2Cache.containsKey(videoId)) {
+            L2Hits++;
+            System.out.println("L2 Cache HIT (5ms)");
+
+            incrementAccess(videoId);
+
+            // Promote to L1 if popular
+            if (accessCount.get(videoId) >= PROMOTION_THRESHOLD) {
+                promoteToL1(videoId, L2Cache.get(videoId));
+            }
+
+            return L2Cache.get(videoId);
+        }
+
+        System.out.println("L2 Cache MISS");
+
+        // -------- DATABASE --------
+        VideoData video = database.get(videoId);
+
+        if (video != null) {
+            DBHits++;
+            System.out.println("Fetched from DB (50ms)");
+
+            // Store in L2 first
+            L2Cache.put(videoId, video);
+
+            incrementAccess(videoId);
+        }
+
+        return video;
+    }
+
+    // Promote to L1 cache
+    private void promoteToL1(String videoId, VideoData video) {
+        System.out.println("Promoting " + videoId + " → L1 Cache");
+        L1Cache.put(videoId, video);
+    }
+
+    // Increment access count
+    private void incrementAccess(String videoId) {
+        accessCount.put(videoId, accessCount.getOrDefault(videoId, 0) + 1);
+    }
+
+    // Add video to database
+    public void addVideoToDB(VideoData video) {
+        database.put(video.videoId, video);
+    }
+
+    // Cache invalidation
+    public void invalidate(String videoId) {
+        L1Cache.remove(videoId);
+        L2Cache.remove(videoId);
+        database.remove(videoId);
+        accessCount.remove(videoId);
+        System.out.println("Cache invalidated for " + videoId);
+    }
+
+    // Cache statistics
+    public void printStats() {
+        System.out.println("\nCache Statistics");
+        System.out.println("L1 Hits: " + L1Hits);
+        System.out.println("L2 Hits: " + L2Hits);
+        System.out.println("DB Hits: " + DBHits);
+    }
+}
+
+public class CacheSystemDemo {
+
+    public static void main(String[] args) {
+
+        MultiLevelCache cache = new MultiLevelCache();
+
+        // Add videos to DB
+        cache.addVideoToDB(new VideoData("video_123", "Movie Data"));
+        cache.addVideoToDB(new VideoData("video_456", "Series Data"));
+
+        // Requests
+        cache.getVideo("video_123");
+        cache.getVideo("video_123");
+        cache.getVideo("video_123");
+        cache.getVideo("video_123");
+
+        cache.printStats();
+    }
+}
