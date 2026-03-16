@@ -1,0 +1,45 @@
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class FlashSaleInventory {
+
+    private HashMap<String, AtomicInteger> stockMap = new HashMap<>();
+    private HashMap<String, Queue<Integer>> waitingList = new HashMap<>();
+
+    public FlashSaleInventory() {
+        stockMap.put("IPHONE15_256GB", new AtomicInteger(100));
+        waitingList.put("IPHONE15_256GB", new LinkedList<>());
+    }
+
+    // Check stock
+    public int checkStock(String productId) {
+        return stockMap.get(productId).get();
+    }
+
+    // Purchase item
+    public synchronized String purchaseItem(String productId, int userId) {
+
+        AtomicInteger stock = stockMap.get(productId);
+
+        if (stock.get() > 0) {
+            int remaining = stock.decrementAndGet();
+            return "Success, " + remaining + " units remaining";
+        } 
+        else {
+            Queue<Integer> queue = waitingList.get(productId);
+            queue.add(userId);
+            return "Added to waiting list, position #" + queue.size();
+        }
+    }
+
+    public static void main(String[] args) {
+
+        FlashSaleInventory system = new FlashSaleInventory();
+
+        System.out.println(system.checkStock("IPHONE15_256GB"));
+
+        System.out.println(system.purchaseItem("IPHONE15_256GB",12345));
+        System.out.println(system.purchaseItem("IPHONE15_256GB",67890));
+        System.out.println(system.purchaseItem("IPHONE15_256GB",99999));
+    }
+}
