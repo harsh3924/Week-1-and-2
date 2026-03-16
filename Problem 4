@@ -1,0 +1,16 @@
+class DNSEntry {
+
+    String domain;
+    String ipAddress;
+    long expiryTime;
+
+    public DNSEntry(String domain, String ipAddress, long ttl) {
+        this.domain = domain;
+        this.ipAddress = ipAddress;
+        this.expiryTime = System.currentTimeMillis() + ttl * 1000;
+    }
+
+    public boolean isExpired() {
+        return System.currentTimeMillis() > expiryTime;
+    }
+}
