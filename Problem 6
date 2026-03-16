@@ -1,0 +1,45 @@
+class TokenBucket {
+
+    private int tokens;
+    private final int maxTokens;
+    private final long refillInterval;
+
+    private long lastRefillTime;
+
+    public TokenBucket(int maxTokens, long refillInterval) {
+        this.maxTokens = maxTokens;
+        this.tokens = maxTokens;
+        this.refillInterval = refillInterval;
+        this.lastRefillTime = System.currentTimeMillis();
+    }
+
+    public synchronized boolean allowRequest() {
+
+        refill();
+
+        if (tokens > 0) {
+            tokens--;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void refill() {
+
+        long now = System.currentTimeMillis();
+
+        long elapsed = now - lastRefillTime;
+
+        int tokensToAdd = (int) (elapsed / refillInterval);
+
+        if (tokensToAdd > 0) {
+            tokens = Math.min(maxTokens, tokens + tokensToAdd);
+            lastRefillTime = now;
+        }
+    }
+
+    public int getRemainingTokens() {
+        return tokens;
+    }
+}
