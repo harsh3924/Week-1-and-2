@@ -1,0 +1,72 @@
+class AutocompleteSystem {
+
+    private TrieNode root;
+    private HashMap<String, Integer> freqMap;
+
+    public AutocompleteSystem() {
+        root = new TrieNode();
+        freqMap = new HashMap<>();
+    }
+
+    // Insert query
+    public void insert(String query) {
+
+        freqMap.put(query, freqMap.getOrDefault(query, 0) + 1);
+
+        TrieNode node = root;
+
+        for (char c : query.toCharArray()) {
+
+            node.children.putIfAbsent(c, new TrieNode());
+            node = node.children.get(c);
+        }
+
+        node.isEnd = true;
+        node.frequency = freqMap.get(query);
+    }
+
+    // Search suggestions
+    public List<String> search(String prefix) {
+
+        TrieNode node = root;
+
+        for (char c : prefix.toCharArray()) {
+
+            if (!node.children.containsKey(c))
+                return new ArrayList<>();
+
+            node = node.children.get(c);
+        }
+
+        PriorityQueue<String> heap =
+                new PriorityQueue<>((a, b) ->
+                        freqMap.get(a) - freqMap.get(b));
+
+        dfs(node, prefix, heap);
+
+        List<String> result = new ArrayList<>();
+
+        while (!heap.isEmpty())
+            result.add(heap.poll());
+
+        Collections.reverse(result);
+
+        return result;
+    }
+
+    // DFS to collect queries
+    private void dfs(TrieNode node, String prefix, PriorityQueue<String> heap) {
+
+        if (node.isEnd) {
+
+            heap.offer(prefix);
+
+            if (heap.size() > 10)
+                heap.poll();
+        }
+
+        for (char c : node.children.keySet()) {
+            dfs(node.children.get(c), prefix + c, heap);
+        }
+    }
+}
