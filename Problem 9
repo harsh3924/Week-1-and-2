@@ -1,0 +1,161 @@
+import java.util.*;
+
+// Transaction Class
+class Transaction {
+
+    int id;
+    int amount;
+    String merchant;
+    String account;
+    long timestamp;
+
+    public Transaction(int id, int amount, String merchant, String account, long timestamp) {
+        this.id = id;
+        this.amount = amount;
+        this.merchant = merchant;
+        this.account = account;
+        this.timestamp = timestamp;
+    }
+}
+
+// Fraud Detection System
+class FraudDetection {
+
+    // Classic Two-Sum
+    public static List<int[]> findTwoSum(List<Transaction> transactions, int target) {
+
+        HashMap<Integer, Transaction> map = new HashMap<>();
+        List<int[]> result = new ArrayList<>();
+
+        for (Transaction t : transactions) {
+
+            int complement = target - t.amount;
+
+            if (map.containsKey(complement)) {
+                result.add(new int[]{map.get(complement).id, t.id});
+            }
+
+            map.put(t.amount, t);
+        }
+
+        return result;
+    }
+
+    // Two-Sum with Time Window (1 hour)
+    public static List<int[]> findTwoSumTimeWindow(List<Transaction> transactions, int target) {
+
+        HashMap<Integer, Transaction> map = new HashMap<>();
+        List<int[]> result = new ArrayList<>();
+
+        for (Transaction t : transactions) {
+
+            int complement = target - t.amount;
+
+            if (map.containsKey(complement)) {
+
+                Transaction prev = map.get(complement);
+
+                if (Math.abs(t.timestamp - prev.timestamp) <= 3600) {
+                    result.add(new int[]{prev.id, t.id});
+                }
+            }
+
+            map.put(t.amount, t);
+        }
+
+        return result;
+    }
+
+    // Duplicate Detection
+    public static void detectDuplicates(List<Transaction> transactions) {
+
+        HashMap<String, List<Transaction>> map = new HashMap<>();
+
+        for (Transaction t : transactions) {
+
+            String key = t.amount + "_" + t.merchant;
+
+            map.putIfAbsent(key, new ArrayList<>());
+
+            map.get(key).add(t);
+        }
+
+        for (String key : map.keySet()) {
+
+            List<Transaction> list = map.get(key);
+
+            if (list.size() > 1) {
+
+                System.out.println("Duplicate transactions for: " + key);
+
+                for (Transaction t : list) {
+                    System.out.println("Transaction ID: " + t.id + " Account: " + t.account);
+                }
+            }
+        }
+    }
+
+    // K-Sum
+    public static void kSum(List<Transaction> transactions, int k, int target,
+                            List<Integer> current, int start) {
+
+        if (k == 0 && target == 0) {
+            System.out.println(current);
+            return;
+        }
+
+        if (k == 0 || target < 0)
+            return;
+
+        for (int i = start; i < transactions.size(); i++) {
+
+            current.add(transactions.get(i).id);
+
+            kSum(transactions,
+                    k - 1,
+                    target - transactions.get(i).amount,
+                    current,
+                    i + 1);
+
+            current.remove(current.size() - 1);
+        }
+    }
+}
+
+// Main Program
+public class Main {
+
+    public static void main(String[] args) {
+
+        List<Transaction> transactions = new ArrayList<>();
+
+        transactions.add(new Transaction(1, 500, "StoreA", "acc1", 1000));
+        transactions.add(new Transaction(2, 300, "StoreB", "acc2", 1500));
+        transactions.add(new Transaction(3, 200, "StoreC", "acc3", 1800));
+        transactions.add(new Transaction(4, 500, "StoreA", "acc4", 2000));
+
+        System.out.println("Classic Two Sum:");
+
+        List<int[]> pairs = FraudDetection.findTwoSum(transactions, 500);
+
+        for (int[] p : pairs) {
+            System.out.println(p[0] + " , " + p[1]);
+        }
+
+        System.out.println("\nTwo Sum with Time Window:");
+
+        List<int[]> pairs2 = FraudDetection.findTwoSumTimeWindow(transactions, 500);
+
+        for (int[] p : pairs2) {
+            System.out.println(p[0] + " , " + p[1]);
+        }
+
+        System.out.println("\nDuplicate Transactions:");
+
+        FraudDetection.detectDuplicates(transactions);
+
+        System.out.println("\nK-Sum (k=3, target=1000):");
+
+        FraudDetection.kSum(transactions, 3, 1000, new ArrayList<>(), 0);
+    }
+}
